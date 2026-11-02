@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Atrapa okna Dodaj fracht (dane syntetyczne)</title>
+<style>
+  body { font-family: sans-serif; margin: 16px; }
+  #modal { display: none; border: 1px solid #999; padding: 12px; margin-top: 12px; width: 980px; }
+  #modal.open { display: block; }
+  #flex { display: flex; gap: 24px; }
+  #flex > div { flex: 1; }
+  textarea { width: 100%; }
+  .chip { display: inline-block; background: #eee; padding: 2px 6px; margin: 0 6px 6px 0; }
+  .cb { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  #menu { display: none; border: 1px solid #ccc; }
+  #dlg { display: none; position: fixed; top: 30%; left: 30%; background: #fff; border: 1px solid #000; padding: 12px; }
+  #dlg.open { display: block; }
+</style>
+</head>
+<body>
+<h1>Atrapa listy (dane syntetyczne)</h1>
+<button id="openAdd" type="button">Dodaj fracht</button>
+
+<div id="modal">
+  <div id="flex">
+    <div>
+      <h2>Dodaj fracht</h2>
+      <a href="#" id="clearLink">Wyczyść formularz</a>
+      <div><textarea name="aiPrompt" id="aiPrompt" rows="4" placeholder="Dodaj plik z danymi frachtu lub przeciągnij go tutaj. Możesz też wkleić tekst..."></textarea></div>
+      <div><button id="recog" type="button" style="display:none">Rozpoznaj dane ↵</button></div>
+      <div id="chips"></div>
+      <div>Data załadunku: <input id="loadDate" style="width:110px"> godz.: <input id="loadTime" style="width:60px"></div>
+    </div>
+    <div>
+      <h2>Znajdź przewoźników</h2>
+      <textarea name="defaultReplyMessage" id="reply" rows="4" placeholder="Wiadomość zwrotna dla pytających o ofertę na komunikatorze..."></textarea>
+      <div id="rcount">0 / 600</div>
+      <label class="cb" id="autoLbl"><span id="autoText">Odpisuj automatycznie</span><input type="checkbox" id="autoCb"></label>
+      <div style="margin-top:12px">
+        <button id="publish" type="button">Opublikuj fracht</button>
+        <button id="menuBtn" type="button" aria-haspopup="true">▾</button>
+      </div>
+      <div id="menu" role="menu">
+        <span id="sendOrder" role="menuitem">Wyślij zlecenie</span>
+        <span id="addNext" role="menuitem">Dodaj kolejny fracht</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="dlg" role="dialog">
+  <p>Czy na pewno chcesz zamknąć formularz?</p>
+  <button id="dlgNo" type="button">Nie</button>
+  <button id="dlgClose" type="button">Zamknij formularz</button>
+</div>
+
+<script>
+  window.__published = [];
+  window.__failPublish = false;
+  const $ = (id) => document.getElementById(id);
+  const modal = $('modal');
+
+  function resetForm() {
+    $('aiPrompt').value = '';
+    $('recog').style.display = 'none';
+    $('chips').textContent = '';
+    $('loadDate').value = '';
+    $('loadTime').value = '';
+    $('reply').value = '';
+    $('rcount').textContent = '0 / 600';
+    $('autoCb').checked = false;
+  }
+
+  $('openAdd').addEventListener('click', () => { resetForm(); modal.classList.add('open'); });
+
+  $('aiPrompt').addEventListener('input', () => {
+    $('recog').style.display = $('aiPrompt').value.trim() ? '' : 'none';
+  });
+
+  $('recog').addEventListener('click', () => {
+    setTimeout(() => {
+      $('chips').innerHTML = '';
+      for (const t of ['PL 71-001 Szczecin', 'DE 10115 Berlin']) {
+        const s = document.createElement('span');
+        s.className = 'chip';
+        s.textContent = t;
+        $('chips').appendChild(s);
+      }
+      $('loadDate').value = '05.11.2026';
+      $('loadTime').value = '08:00';
+    }, 1200);
+  });
+
+  $('reply').addEventListener('input', () => {
+    $('rcount').textContent = `${$('reply').value.length} / 600`;
+  });
+
+  $('publish').addEventListener('click', () => {
+    if (window.__failPublish) return; // symulacja: okno zostaje otwarte
+    window.__published.push({
+      reply: $('reply').value,
+      auto: $('autoCb').checked,
+      origin: $('chips').children[0] ? $('chips').children[0].textContent : null
+    });
+    setTimeout(() => modal.classList.remove('open'), 300);
+  });
+
+  $('sendOrder').addEventListener('click', () => { window.__sendOrder = true; });
+  $('menuBtn').addEventListener('click', () => {
+    const m = $('menu');
+    m.style.display = m.style.display === 'block' ? 'none' : 'block';
+  });
+
+  $('clearLink').addEventListener('click', (e) => {
+    e.preventDefault();
+    $('dlg').classList.add('open');
+  });
+  $('dlgNo').addEventListener('click', () => {
+    window.__dlgNo = (window.__dlgNo || 0) + 1;
+    $('dlg').classList.remove('open');
+  });
+  $('dlgClose').addEventListener('click', () => {
+    $('dlg').classList.remove('open');
+    resetForm();
+    modal.classList.remove('open');
+  });
+</script>
+</body>
+</html>

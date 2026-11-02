@@ -105,10 +105,10 @@
     if (!def) throw new Error(`selectors: nieznany klucz "${key}"`);
     for (const [strategy, find] of def.strategies) {
       const r = find();
-      if (r) {
-        const el = r.el || r;
-        return { el, click: r.click || el, strategy };
-      }
+      if (!r) continue;
+      // Uwaga: HTMLElement ma własną metodę click(), więc odróżniamy element od opakowania {el, click}.
+      if (r instanceof Element) return { el: r, click: r, strategy };
+      return { el: r.el, click: r.click || r.el, strategy };
     }
     return null;
   }
@@ -140,14 +140,13 @@
   const CHIP_RE = /^[A-Z]{2} [0-9][0-9A-Za-z-]{1,8} \S.{0,60}$/;
   function chips() {
     const root = scope();
-    const out = [];
+    const candidates = [];
     for (const el of vis('span, div, a, button, p', root)) {
       const t = normText(el);
-      if (!CHIP_RE.test(t)) continue;
-      if (Array.from(el.children).some((c) => normText(c) === t)) continue; // bierzemy najgłębszy element
-      out.push({ el, text: t });
+      if (CHIP_RE.test(t)) candidates.push({ el, text: t });
     }
-    return out;
+    // Kontener z dwoma chipami też pasuje do wzorca: zostawiamy tylko te, które nie zawierają innego kandydata.
+    return candidates.filter((c) => !candidates.some((o) => o !== c && c.el.contains(o.el)));
   }
 
   function dateInputs() {
