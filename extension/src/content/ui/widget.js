@@ -37,6 +37,11 @@
     }
     .l { white-space: pre-wrap; word-break: break-word; }
     .l.warn { color: #9c4a00; } .l.err { color: #c92a2a; } .l.ok { color: #2b8a3e; }
+    .btn {
+      font: inherit; background: #e8e5de; color: #1c1b19; border: 1px solid #1c1b19;
+      border-radius: 2px; padding: 3px 8px; cursor: pointer;
+    }
+    .btn:focus-visible { outline: 2px solid #d9480f; outline-offset: 1px; }
   `;
 
   let host = null;
@@ -92,6 +97,7 @@
       </div>
       <div id="body">
         <div class="row"><span id="link" class="err">łącznik: sprawdzam</span><span>Alt+H</span></div>
+        <div class="row"><button type="button" id="btest" class="btn">Test selektorów</button></div>
         <div id="log" role="log" aria-live="polite"></div>
       </div>`;
     root.appendChild(w);
@@ -103,9 +109,13 @@
       min: root.getElementById('bmin'),
       x: root.getElementById('bx'),
       link: root.getElementById('link'),
+      test: root.getElementById('btest'),
       log: root.getElementById('log')
     };
 
+    els.test.addEventListener('click', () => {
+      if (handlers.onTest) handlers.onTest();
+    });
     els.min.addEventListener('click', () => {
       w.classList.toggle('min');
       els.min.textContent = w.classList.contains('min') ? '□' : '_';

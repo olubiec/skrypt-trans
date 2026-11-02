@@ -3,22 +3,32 @@
   "name": "Trans Combajn",
   "version": "5.0.0",
   "description": "Dodawanie frachtów z kolejki z auto-odpisem i odświeżanie ofert na platform.trans.eu",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://platform.trans.eu/*"],
+      "matches": [
+        "https://platform.trans.eu/*"
+      ],
       "js": [
         "src/shared/proto.js",
+        "src/shared/text.js",
         "src/page/core/human.js",
         "src/page/core/dom.js",
         "src/page/core/bus.js",
+        "src/page/adapters/selectors.js",
+        "src/page/adapters/modal.js",
+        "src/page/modules/selftest.js",
         "src/page/main.js"
       ],
       "run_at": "document_idle",
       "world": "MAIN"
     },
     {
-      "matches": ["https://platform.trans.eu/*"],
+      "matches": [
+        "https://platform.trans.eu/*"
+      ],
       "js": [
         "src/shared/proto.js",
         "src/content/bus-client.js",
