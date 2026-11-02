@@ -11,5 +11,8 @@ Stan: trwa przebudowa z wersji 4.0 na 5.0.
 | `docs/FORMAT-KOLEJKI.md` | Format wklejki: wiele tras, prompt + auto-odpis, szkic parsera |
 | `docs/PROMPTS.md` | Prompty do generowania wklejki i prompty implementacyjne per faza |
 | `docs/RECON.md` | Jak zrzucić DOM nowego okna „Dodaj fracht" (faza 0) |
+| `docs/OKNO-TRANS.md`, `docs/ZBADANIE-ELEMENTOW.md` | Opis okna i selektory zweryfikowane na żywo |
+| `docs/START-SESJI.md` | Jak uruchomić pracę w Claude Code i prompty startowe |
+| `CLAUDE.md` | Założenia, zasady i stan prac (wczytywane przez Claude Code) |
 
-Następny krok: faza 0 (rozpoznanie okna), bo selektory nowego okna i pola auto-odpisu muszą oprzeć się na faktach.
+Faza 0 (rozpoznanie okna) jest zrobiona. Następny krok: faza 1, patrz `docs/START-SESJI.md`.
