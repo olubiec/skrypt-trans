@@ -71,56 +71,68 @@
     }
   }
 
+  // Jedna pozycja: do dwóch prób. Zapis sukcesu jest poza try, żeby błąd storage
+  // nie uruchomił ponowienia (a z nim duplikatu publikacji).
   async function attemptItem(item, settings) {
     for (let attempt = 1; attempt <= 2; attempt++) {
+      let res;
       try {
-        const res = await T.bus.request('add.item', {
+        res = await T.bus.request('add.item', {
           label: item.label,
           text: item.fracht,
           odpis: item.odpis,
           dryRun: settings.dryRun
         }, { timeout: PUBLISH_TIMEOUT_MS });
-
-        const note = res && res.dryRun ? 'próba (bez publikacji)' : 'opublikowano';
-        await T.queue.patch(item.id, { status: 'ok', note, blad: null });
-        T.ui.log(`[${item.label}] ${note}.`, 'ok');
-        await bump(res && res.dryRun ? 'dry' : 'added');
-        return;
       } catch (err) {
-        if (err.aborted) {
-          const afterPublish = publishingId === item.id;
-          await T.queue.patch(item.id, afterPublish
-            ? { status: 'blad', blad: 'przerwano w trakcie publikacji. Sprawdź w Transie, nie ponawiam', noRetry: true }
-            : { status: 'czeka', blad: null });
-          if (!afterPublish) {
-            try {
-              await T.bus.request('add.clear', null, { timeout: 60000 });
-            } catch (clearErr) {
-              T.ui.log(`Po zatrzymaniu nie udało się wyczyścić formularza: ${clearErr.message}`, 'err');
-            }
-          }
-          throw err;
-        }
-
-        const why = err.timeout ? `${err.message} (strona nie odpowiedziała)` : err.message;
-        T.ui.log(`[${item.label}] błąd, próba ${attempt}: ${why}`, 'err');
-        if (err.timeout) {
-          await T.bus.request('add.abort', null, { timeout: 3000 }).catch((e) => {
-            T.ui.log(`Nie udało się przerwać operacji strony: ${e.message}`, 'err');
-          });
-        }
-
-        const finalFail = err.noRetry || publishingId === item.id || attempt === 2;
-        if (finalFail) {
-          await T.queue.patch(item.id, { status: 'blad', blad: why, noRetry: !!(err.noRetry || publishingId === item.id) });
-          await bump('errors');
-          await cleanup();
-          return;
-        }
-        await cleanup();
-        T.ui.log(`[${item.label}] ponawiam po wyczyszczeniu formularza.`, 'warn');
+        const finished = await handleFailure(item, err, attempt);
+        if (finished) return;
+        continue;
       }
+
+      const dry = !!(res && res.dryRun);
+      const note = dry ? 'próba (bez publikacji)' : 'opublikowano';
+      await T.queue.patch(item.id, { status: 'ok', note, blad: null });
+      T.ui.log(`[${item.label}] ${note}.`, 'ok');
+      await bump(dry ? 'dry' : 'added');
+      return;
     }
+  }
+
+  // Zwraca true, gdy pozycja zakończona (błąd ostateczny). Stop rzuca dalej.
+  async function handleFailure(item, err, attempt) {
+    if (err.aborted) {
+      const afterPublish = publishingId === item.id;
+      await T.queue.patch(item.id, afterPublish
+        ? { status: 'blad', blad: 'przerwano w trakcie publikacji. Sprawdź w Transie, nie ponawiam', noRetry: true }
+        : { status: 'czeka', blad: null });
+      if (!afterPublish) {
+        try {
+          await T.bus.request('add.clear', null, { timeout: 60000 });
+        } catch (clearErr) {
+          T.ui.log(`Po zatrzymaniu nie udało się wyczyścić formularza: ${clearErr.message}`, 'err');
+        }
+      }
+      throw err;
+    }
+
+    const why = err.timeout ? `${err.message} (strona nie odpowiedziała)` : err.message;
+    T.ui.log(`[${item.label}] błąd, próba ${attempt}: ${why}`, 'err');
+    if (err.timeout) {
+      await T.bus.request('add.abort', null, { timeout: 3000 }).catch((e) => {
+        T.ui.log(`Nie udało się przerwać operacji strony: ${e.message}`, 'err');
+      });
+    }
+
+    const noRetry = !!err.noRetry || publishingId === item.id;
+    if (noRetry || attempt === 2) {
+      await T.queue.patch(item.id, { status: 'blad', blad: why, noRetry });
+      await bump('errors');
+      await cleanup();
+      return true;
+    }
+    await cleanup();
+    T.ui.log(`[${item.label}] ponawiam po wyczyszczeniu formularza.`, 'warn');
+    return false;
   }
 
   async function start() {

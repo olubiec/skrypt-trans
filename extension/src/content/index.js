@@ -70,10 +70,10 @@
     return T.runner.isRunning() || T.rt.refreshRunning;
   }
 
+  // Zamknięcie zatrzymuje pracę, ale nie zmienia ustawienia wznowienia ani zapisanego planu.
   function stopAll() {
     T.runner.stop();
     T.scheduler.stop();
-    T.scheduler.setAuto(false);
   }
 
   function onClose() {
