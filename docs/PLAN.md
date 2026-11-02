@@ -112,7 +112,8 @@ Kolejność ma znaczenie: faza 0 odblokowuje wszystko, bo nie widzę jeszcze now
 
 ## 7. Otwarte kwestie
 
-- **Brak zrzutu okna.** Wspomniałeś zdjęcie okna z dwiema stronami, ale nie dotarło do mnie. Potrzebny jest zrzut lub (lepiej) HTML z `docs/RECON.md`.
-- Czy wiadomość auto-odpisu ma limit znaków w Transie? Do sprawdzenia w fazie 0.
+- Zrzut okna jest w `docs/img/okno-dodaj-fracht.png`, opis i wnioski w `docs/OKNO-TRANS.md`. Nadal potrzebny zrzut DOM z `docs/RECON.md`, bo ze zdjęcia nie widać elementów (typ pola szybkiego wypełniania, atrybuty).
+- Limit wiadomości auto-odpisu: **600 znaków** (licznik w oknie). Parser ostrzega powyżej limitu.
+- Gdzie jest „Dodaj kolejny fracht" i czy rozpoznawanie startuje po samym wklejeniu: do sprawdzenia w fazie 0.
 - Czy checkbox „odpisuj automatycznie" bywa domyślnie włączony? Skrypt i tak zawsze sprawdza stan.
 - Maks. liczba tras na jedną wklejkę i tempo (przerwa między frachtami): propozycja 20 tras i 8–20 s.

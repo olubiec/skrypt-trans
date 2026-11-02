@@ -22,6 +22,8 @@ ODPIS: ...
 6. Tryb zgodności: wklejka bez żadnego `@@` jest traktowana po staremu, jedna linia = jeden `FRACHT`, bez `ODPIS` (z szablonem domyślnym).
 7. Dozwolone placeholdery w `ODPIS` (podmieniane przez skrypt, jeśli jest dane): `{zaladunek}`, `{rozladunek}`, `{data}`, `{etykieta}`. Dane pobierane z pól formularza po rozpoznaniu przez AI Transa. Nieznany placeholder zostaje w tekście i skrypt ostrzega w logu, zanim opublikuje.
 
+8. Limit: `ODPIS` dłuższy niż 600 znaków daje ostrzeżenie w logu i oznacza pozycję jako błędną przed publikacją (pole w Transie ma limit 600).
+
 ## Przykład
 
 ```

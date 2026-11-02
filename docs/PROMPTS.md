@@ -28,7 +28,7 @@ Zasady formatu:
 5. Każda trasa ma własny, dopasowany ODPIS. Nie kopiuj jednego tekstu do wszystkich.
 
 Zasady dla ODPIS:
-- Pisz po polsku, grzecznie, rzeczowo, 3–6 zdań.
+- Pisz po polsku, grzecznie, rzeczowo, 3–6 zdań. TWARDY LIMIT: maksymalnie 600 znaków ze spacjami (limit pola w Transie). Przekroczenie jest błędem, skracaj.
 - Zawieraj: potwierdzenie trasy (skąd–dokąd), termin załadunku i rozładunku, ważne warunki ładunku (waga, rodzaj, typ pojazdu, uwagi), prośbę o potwierdzenie dostępności i danych pojazdu.
 - Używaj wyłącznie danych z wejścia. Jeśli czegoś brakuje, pomiń to zdanie. Nie wymyślaj cen, godzin, numerów ani nazw firm.
 - Nie używaj emoji ani wykrzykników.
