@@ -70,12 +70,14 @@ Gdy sesja ma narzędzia przeglądarki: użyć rozszerzenia Chrome na zalogowanym
 | Faza | Status |
 |---|---|
 | 0. Rozpoznanie okna | **zrobione** (`docs/ZBADANIE-ELEMENTOW.md`) |
-| 1. Szkielet | do zrobienia |
-| 2. Selektory + selftest | do zrobienia |
-| 3. Dodawarka v5 + auto-odpis | do zrobienia |
-| 4. Refresh v5 | do zrobienia |
-| 5. Design | do zrobienia |
-| 6. Dopięcie, README, ZIP | do zrobienia |
+| 1. Szkielet | **zrobione** (`493d083`): manifest, magistrala, widżet, core |
+| 2. Selektory + selftest | **zrobione** (`eb2f00a`): selectors.js, modal.js, selftest |
+| 3. Dodawarka v5 + auto-odpis | **zrobione** (`3315a5e`): parser, kolejka, runner, add.js |
+| 4. Refresh v5 | **zrobione** (`9a61d8f`): refresh.js na core, harmonogram |
+| 5. Design | **zrobione** (`7a05cfe`): terminal, zakładki, motyw jasny/ciemny |
+| 6. Dopięcie, README, ZIP | **zrobione**: README, CHANGELOG, `npm test`, `npm run e2e`, `npm run check`, `npm run pack` |
+
+Weryfikacja: 26 testów Node, 7 sprawdzeń E2E na atrapie okna (`tests/e2e/`). Na żywo na platform.trans.eu jeszcze nie testowano. Lista do ręcznego sprawdzenia: `CHANGELOG.md`, sekcja 5.0.0.
 
 Pracować fazami, każda na gałęzi `feature/v5-faza-N`, z krótkim opisem zmian i listą rzeczy do ręcznego sprawdzenia. Po każdej fazie przegląd promptem z końca `docs/PROMPTS.md`. Aktualizować tabelę powyżej po zakończeniu fazy.
 
