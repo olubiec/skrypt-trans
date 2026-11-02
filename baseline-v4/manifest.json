@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "Trans Combajn Ultimate",
+  "version": "4.0",
+  "description": "Zoptymalizowany widget: Pełen kamuflaż behawioralny i Shadow DOM",
+  "permissions": ["activeTab", "scripting"],
+  "content_scripts": [
+    {
+      "matches": ["https://platform.trans.eu/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://platform.trans.eu/*"],
+      "js": ["inject-refresh.js", "inject-add.js"],
+      "run_at": "document_idle",
+      "world": "MAIN"
+    }
+  ]
+}

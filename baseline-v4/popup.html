@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 420px;
+    font-family: 'DM Sans', sans-serif;
+    background: #0f1117;
+    color: #e4e4e7;
+    padding: 16px;
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #27272a;
+  }
+
+  .header h1 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #22c55e;
+  }
+
+  .header .logo {
+    width: 28px;
+    height: 28px;
+    background: #22c55e;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: #0f1117;
+  }
+
+  /* Sekcja Odświeżania */
+  .refresh-panel {
+    background: #1a1b23;
+    border: 1px solid #3f3f46;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .refresh-info {
+    font-size: 12px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    background: #ef4444; /* Domyślnie czerwony = wyłączone */
+  }
+
+  .status-dot.active { background: #22c55e; animation: pulse 2s infinite; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .toggle-btn {
+    background: #27272a;
+    color: #e4e4e7;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 11px;
+    transition: 0.2s;
+  }
+
+  .toggle-btn.on { background: #ef4444; }
+
+  /* Sekcja Dodawania */
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #a1a1aa;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  textarea {
+    width: 100%;
+    height: 120px;
+    background: #1a1b23;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 10px;
+    color: #e4e4e7;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    resize: none;
+    outline: none;
+  }
+
+  textarea:focus { border-color: #22c55e; }
+
+  .controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  button.action-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #22c55e;
+    color: #0f1117;
+  }
+
+  button.action-btn:disabled { background: #27272a; color: #52525b; }
+  
+  #stopBtn { background: #27272a; color: #a1a1aa; flex: 0.4; }
+
+  /* Logi */
+  .log {
+    margin-top: 12px;
+    height: 100px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    background: #1a1b23;
+    border: 1px solid #27272a;
+    border-radius: 8px;
+    padding: 8px;
+    color: #71717a;
+  }
+
+  .log .entry { margin-bottom: 2px; }
+  .log .entry.ok { color: #22c55e; }
+  .log .entry.err { color: #ef4444; }
+  .log .entry.info { color: #3b82f6; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">T</div>
+    <h1>Trans Auto Ultimate</h1>
+  </div>
+
+  <div class="refresh-panel">
+    <div class="refresh-info">
+      <span class="status-dot" id="refreshDot"></span>
+      Auto-Odświeżanie: <strong id="refreshStatusText">Wyłączone</strong>
+    </div>
+    <button id="toggleRefreshBtn" class="toggle-btn">Włącz (5 min)</button>
+  </div>
+
+  <label>Kolejka frachtów (jeden na linię)</label>
+  <textarea id="freights" placeholder="Wklej tutaj teksty frachtów..."></textarea>
+
+  <div class="controls">
+    <button id="startBtn" class="action-btn">▶ Dodaj do Trans.eu</button>
+    <button id="stopBtn" class="action-btn">■ Stop</button>
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
