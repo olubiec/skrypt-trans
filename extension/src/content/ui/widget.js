@@ -159,6 +159,8 @@
     els.pacingMin.value = s.pacingMinSec;
     els.pacingMax.value = s.pacingMaxSec;
     els.maxTras.value = s.maxTras;
+    els.rmin.value = s.refreshMinMin;
+    els.rmax.value = s.refreshMaxMin;
     updateReplyCounter();
   }
 
@@ -168,7 +170,9 @@
       defaultReply: els.defaultReply.value,
       pacingMinSec: Math.max(3, Number(els.pacingMin.value) || 8),
       pacingMaxSec: Math.max(3, Number(els.pacingMax.value) || 20),
-      maxTras: Math.max(1, Math.min(50, Number(els.maxTras.value) || 20))
+      maxTras: Math.max(1, Math.min(50, Number(els.maxTras.value) || 20)),
+      refreshMinMin: Math.max(1, Number(els.rmin.value) || 20),
+      refreshMaxMin: Math.max(1, Number(els.rmax.value) || 40)
     };
   }
 
@@ -206,6 +210,18 @@
         <div class="row"><span id="link" class="err">łącznik: sprawdzam</span><span class="mono">Alt+H</span></div>
         <div class="row"><button type="button" id="btest">Test selektorów</button></div>
 
+        <div class="sec">Odświeżanie</div>
+        <div class="row mono"><span id="rstate">Pauza</span><span id="rcount">0</span></div>
+        <div class="row mono"><span>Czas sesji</span><span id="relapsed">00:00</span></div>
+        <div class="row mono"><span>Następna sesja</span><span id="rnext">--:--</span></div>
+        <div class="row">
+          <label><input type="checkbox" id="rauto" checked> Wznowienie automatyczne</label>
+          <span>
+            <button type="button" id="rstart">Start</button>
+            <button type="button" id="rstop" disabled>Stop</button>
+          </span>
+        </div>
+
         <div class="sec">Wklejka i kolejka</div>
         <textarea id="paste" placeholder="@@ etykieta&#10;FRACHT: ...&#10;ODPIS: ..."></textarea>
         <div class="row">
@@ -231,6 +247,10 @@
         <div class="row">
           <span>Przerwa między frachtami (s)</span>
           <span><input type="number" id="pmin" min="3" max="300"> – <input type="number" id="pmax" min="3" max="300"></span>
+        </div>
+        <div class="row">
+          <span>Odświeżanie: wznowienie co (min)</span>
+          <span><input type="number" id="rmin" min="1" max="240"> – <input type="number" id="rmax" min="1" max="240"></span>
         </div>
         <div class="row">
           <span>Limit tras na wklejkę</span>
@@ -267,6 +287,15 @@
       pacingMin: q('pmin'),
       pacingMax: q('pmax'),
       maxTras: q('maxtras'),
+      rstate: q('rstate'),
+      rcount: q('rcount'),
+      relapsed: q('relapsed'),
+      rnext: q('rnext'),
+      rauto: q('rauto'),
+      rstart: q('rstart'),
+      rstop: q('rstop'),
+      rmin: q('rmin'),
+      rmax: q('rmax'),
       save: q('bsave'),
       log: q('log')
     };
@@ -284,6 +313,9 @@
     els.start.addEventListener('click', () => handlers.onStart && handlers.onStart());
     els.stop.addEventListener('click', () => handlers.onStop && handlers.onStop());
     els.clr.addEventListener('click', () => handlers.onClearDone && handlers.onClearDone());
+    els.rstart.addEventListener('click', () => handlers.onRefreshStart && handlers.onRefreshStart());
+    els.rstop.addEventListener('click', () => handlers.onRefreshStop && handlers.onRefreshStop());
+    els.rauto.addEventListener('change', () => handlers.onAuto && handlers.onAuto(els.rauto.checked));
     els.save.addEventListener('click', () => handlers.onSaveSettings && handlers.onSaveSettings(readSettings()));
     els.defaultReply.addEventListener('input', updateReplyCounter);
     els.qBody.addEventListener('click', (e) => {
@@ -326,6 +358,23 @@
     }
   }
 
+  function setRefresh(snap) {
+    if (!els.rstate) return;
+    els.rstate.textContent = snap.running ? 'Pracuję' : snap.auto ? 'Czeka na wznowienie' : 'Wyłączone';
+    els.rstate.className = snap.running ? 'warn' : '';
+    els.rcount.textContent = String(snap.count);
+    els.relapsed.textContent = fmtTime(snap.elapsedSec);
+    els.rnext.textContent = snap.nextInSec === null ? '--:--' : fmtTime(snap.nextInSec);
+    els.rauto.checked = !!snap.auto;
+    els.rstart.disabled = snap.running;
+    els.rstop.disabled = !snap.running;
+  }
+
+  function fmtTime(sec) {
+    const s = Math.max(0, Math.floor(sec || 0));
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }
+
   function clearPaste() {
     if (els.paste) els.paste.value = '';
   }
@@ -348,6 +397,7 @@
     setLink,
     renderQueue,
     setRunning,
+    setRefresh,
     setWarnings,
     setSettings,
     clearPaste,

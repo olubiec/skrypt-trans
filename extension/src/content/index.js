@@ -66,12 +66,34 @@
     }
   }
 
+  function busy() {
+    return T.runner.isRunning() || T.rt.refreshRunning;
+  }
+
+  function stopAll() {
+    T.runner.stop();
+    T.scheduler.stop();
+    T.scheduler.setAuto(false);
+  }
+
   function onClose() {
-    if (T.runner.isRunning() && !window.confirm('Dodawanie trwa. Zamknąć widżet i zatrzymać dodawanie?')) return;
-    if (T.runner.isRunning()) T.runner.stop();
+    if (busy() && !window.confirm('Trwa dodawanie lub odświeżanie. Zamknąć widżet i zatrzymać?')) return;
+    if (busy()) stopAll();
+    T.scheduler.destroy();
+    document.removeEventListener('keydown', onEsc);
     T.ui.log('Zamykanie widżetu.', 'warn');
     T.ui.unmount();
   }
+
+  // Esc zatrzymuje dodawanie i odświeżanie (tylko gdy coś działa).
+  function onEsc(e) {
+    if (e.key === 'Escape' && busy()) {
+      T.ui.log('Esc: zatrzymuję.', 'warn');
+      T.runner.stop();
+      T.scheduler.stop();
+    }
+  }
+  document.addEventListener('keydown', onEsc);
 
   T.ui.mount({
     onClose,
@@ -83,7 +105,10 @@
     onStop: () => T.runner.stop(),
     onAction,
     onClearDone: () => T.queue.clearDone().catch((err) => T.ui.log(err.message, 'err')),
-    onSaveSettings
+    onSaveSettings,
+    onRefreshStart: () => T.scheduler.start(),
+    onRefreshStop: () => T.scheduler.stop(),
+    onAuto: (on) => T.scheduler.setAuto(on)
   });
 
   T.bus.onEvent((type) => {
@@ -92,6 +117,7 @@
 
   T.queue.subscribe((items) => T.ui.renderQueue(items));
   T.runner.subscribe((running) => T.ui.setRunning(running));
+  T.scheduler.subscribe((snap) => T.ui.setRefresh(snap));
 
   (async () => {
     try {
@@ -102,6 +128,7 @@
       T.ui.setRunning(false);
       const n = items.filter((i) => i.status === 'czeka').length;
       if (n) T.ui.log(`W kolejce czeka ${n} pozycji.`);
+      await T.scheduler.init();
     } catch (err) {
       T.ui.log(`Nie udało się wczytać stanu: ${err.message}`, 'err');
     }
