@@ -115,9 +115,37 @@
     if (type === 'ready') T.ui.log('Świat strony gotowy.');
   });
 
-  T.queue.subscribe((items) => T.ui.renderQueue(items));
-  T.runner.subscribe((running) => T.ui.setRunning(running));
-  T.scheduler.subscribe((snap) => T.ui.setRefresh(snap));
+  T.queue.subscribe((items) => {
+    T.ui.renderQueue(items);
+    updateSummary();
+  });
+  // Podsumowanie w jednej linii (widoczne po minimalizacji): ODŚW 42 · 12:31 · wznow 24:10
+  let lastSnap = null;
+  function fmt(sec) {
+    const s = Math.max(0, Math.floor(sec || 0));
+    return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  }
+  function updateSummary() {
+    const parts = [];
+    if (lastSnap && lastSnap.running) parts.push(`ODŚW ${lastSnap.count} · ${fmt(lastSnap.elapsedSec)}`);
+    if (lastSnap && lastSnap.auto && lastSnap.nextInSec !== null) parts.push(`wznow ${fmt(lastSnap.nextInSec)}`);
+    if (T.runner.isRunning()) {
+      const c = T.queue.counts();
+      const total = c.czeka + c.praca + c.ok + c.blad;
+      parts.push(`DODAJ ${c.ok}/${total}`);
+    }
+    T.ui.setSummary(parts.join(' · ') || 'gotowy');
+  }
+
+  T.runner.subscribe((running) => {
+    T.ui.setRunning(running);
+    updateSummary();
+  });
+  T.scheduler.subscribe((snap) => {
+    lastSnap = snap;
+    T.ui.setRefresh(snap);
+    updateSummary();
+  });
 
   (async () => {
     try {
