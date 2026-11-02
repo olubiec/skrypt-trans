@@ -1,7 +1,8 @@
 /*
  * Widżet w Shadow DOM (tryb closed: strona nie widzi jego elementów).
- * Faza 1: pasek tytułu, przeciąganie, minimalizacja, zamknięcie, Alt+H, log i status łącznika.
- * Kolejne fazy dopisują zakładki i moduły. Bez zewnętrznych fontów i zapytań sieciowych.
+ * Faza 3: pasek tytułu, test selektorów, wklejka i kolejka, ustawienia, log.
+ * Wygląd „dyspozytorski terminal" dochodzi w fazie 5. Bez zewnętrznych fontów i zapytań sieciowych.
+ * Wszystkie dane z kolejki wstawiane są przez textContent (nigdy innerHTML).
  */
 (function () {
   'use strict';
@@ -10,10 +11,10 @@
   const CSS = `
     :host { all: initial; }
     #w {
-      position: fixed; top: 72px; right: 16px; width: 340px; z-index: 2147483000;
+      position: fixed; top: 72px; right: 16px; width: 360px; z-index: 2147483000;
       font: 12px/1.4 system-ui, sans-serif; color: #1c1b19; background: #e8e5de;
       border: 1px solid #1c1b19; border-radius: 2px; box-shadow: 3px 3px 0 #1c1b19;
-      display: flex; flex-direction: column; box-sizing: border-box;
+      display: flex; flex-direction: column; box-sizing: border-box; max-height: calc(100vh - 96px);
     }
     #w * { box-sizing: border-box; }
     #w.min #body { display: none; }
@@ -23,34 +24,46 @@
       font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-weight: 700;
     }
     #ctl { display: flex; gap: 4px; }
-    #ctl button {
-      font: inherit; background: none; border: 1px solid #1c1b19; border-radius: 2px;
-      color: #1c1b19; cursor: pointer; padding: 0 6px; line-height: 16px;
+    #body { padding: 8px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .mono { font-family: ui-monospace, Consolas, monospace; }
+    .ok { color: #2b8a3e; } .err { color: #c92a2a; } .warn { color: #9c4a00; }
+    button, .btn {
+      font: inherit; background: #e8e5de; color: #1c1b19; border: 1px solid #1c1b19;
+      border-radius: 2px; padding: 2px 8px; cursor: pointer; line-height: 18px;
     }
-    #ctl button:focus-visible { outline: 2px solid #d9480f; outline-offset: 1px; }
-    #body { padding: 8px; display: flex; flex-direction: column; gap: 8px; }
-    .row { display: flex; justify-content: space-between; gap: 8px; font-family: ui-monospace, Consolas, monospace; }
-    .ok { color: #2b8a3e; } .err { color: #c92a2a; }
+    button:disabled { color: #8a8580; border-color: #8a8580; cursor: not-allowed; }
+    button:focus-visible, textarea:focus-visible, input:focus-visible {
+      outline: 2px solid #d9480f; outline-offset: 1px;
+    }
+    textarea, input[type=number] {
+      font: 11px/1.3 ui-monospace, Consolas, monospace; color: #1c1b19; background: #f4f2ee;
+      border: 1px solid #1c1b19; border-radius: 2px; padding: 4px; width: 100%;
+    }
+    textarea { resize: vertical; min-height: 56px; }
+    input[type=number] { width: 64px; }
+    .sec { font-weight: 700; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; border-top: 1px solid #1c1b19; padding-top: 6px; }
+    .cnt { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+    .warns { font-size: 11px; color: #9c4a00; margin: 0; padding-left: 16px; }
+    table { width: 100%; border-collapse: collapse; font: 11px/1.3 ui-monospace, Consolas, monospace; }
+    th, td { text-align: left; border-bottom: 1px solid #b9b5ad; padding: 3px 4px; vertical-align: top; }
+    td.act { white-space: nowrap; }
+    .q-empty { color: #5f5b55; font-size: 11px; }
     #log {
-      height: 160px; overflow-y: auto; background: #f4f2ee; border: 1px solid #1c1b19;
+      height: 150px; overflow-y: auto; background: #f4f2ee; border: 1px solid #1c1b19;
       padding: 6px; font-family: ui-monospace, Consolas, monospace; font-size: 11px;
     }
     .l { white-space: pre-wrap; word-break: break-word; }
     .l.warn { color: #9c4a00; } .l.err { color: #c92a2a; } .l.ok { color: #2b8a3e; }
-    .btn {
-      font: inherit; background: #e8e5de; color: #1c1b19; border: 1px solid #1c1b19;
-      border-radius: 2px; padding: 3px 8px; cursor: pointer;
-    }
-    .btn:focus-visible { outline: 2px solid #d9480f; outline-offset: 1px; }
   `;
 
   let host = null;
   let root = null;
   let els = {};
+  let handlers = {};
   let dragging = false;
   let dx = 0;
   let dy = 0;
-  let onClose = () => {};
 
   function ts() {
     return new Date().toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
@@ -72,8 +85,102 @@
     els.link.className = ok ? 'ok' : 'err';
   }
 
-  function mount(handlers = {}) {
-    onClose = handlers.onClose || onClose;
+  const STATUS_TAG = { czeka: '[CZEKA]', praca: '[PRACA]', ok: '[OK]', blad: '[ERR]' };
+  const STATUS_CLS = { czeka: '', praca: 'warn', ok: 'ok', blad: 'err' };
+
+  function renderQueue(items) {
+    if (!els.qBody) return;
+    els.qBody.textContent = '';
+    if (items.length === 0) {
+      els.qEmpty.hidden = false;
+      els.qTable.hidden = true;
+    } else {
+      els.qEmpty.hidden = true;
+      els.qTable.hidden = false;
+    }
+    items.forEach((it, idx) => {
+      const tr = document.createElement('tr');
+      const cells = [String(idx + 1), it.label, null, it.blad || it.note || ''];
+      cells.forEach((value, col) => {
+        const td = document.createElement('td');
+        if (col === 2) {
+          td.textContent = STATUS_TAG[it.status] || it.status;
+          td.className = STATUS_CLS[it.status] || '';
+        } else {
+          td.textContent = value;
+        }
+        tr.appendChild(td);
+      });
+      const act = document.createElement('td');
+      act.className = 'act';
+      if (it.status === 'blad' && !it.noRetry) act.appendChild(actionButton('ponów', 'retry', it.id));
+      if (it.status !== 'praca') act.appendChild(actionButton('usuń', 'remove', it.id));
+      tr.appendChild(act);
+      els.qBody.appendChild(tr);
+    });
+
+    const c = { czeka: 0, praca: 0, ok: 0, blad: 0 };
+    for (const it of items) c[it.status] = (c[it.status] || 0) + 1;
+    els.counts.textContent = `OK ${c.ok} · BŁĄD ${c.blad} · CZEKA ${c.czeka}`;
+  }
+
+  function actionButton(label, action, id) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = label;
+    b.dataset.action = action;
+    b.dataset.id = id;
+    b.style.marginLeft = '2px';
+    return b;
+  }
+
+  function setRunning(running) {
+    if (!els.start) return;
+    els.start.disabled = running;
+    els.stop.disabled = !running;
+    els.addBtn.disabled = false;
+  }
+
+  function setWarnings(list) {
+    if (!els.warns) return;
+    els.warns.textContent = '';
+    for (const w of list) {
+      const li = document.createElement('li');
+      li.textContent = w;
+      els.warns.appendChild(li);
+    }
+    els.warns.hidden = list.length === 0;
+  }
+
+  function setSettings(s) {
+    if (!els.dryRun) return;
+    els.dryRun.checked = !!s.dryRun;
+    els.defaultReply.value = s.defaultReply || '';
+    els.pacingMin.value = s.pacingMinSec;
+    els.pacingMax.value = s.pacingMaxSec;
+    els.maxTras.value = s.maxTras;
+    updateReplyCounter();
+  }
+
+  function readSettings() {
+    return {
+      dryRun: els.dryRun.checked,
+      defaultReply: els.defaultReply.value,
+      pacingMinSec: Math.max(3, Number(els.pacingMin.value) || 8),
+      pacingMaxSec: Math.max(3, Number(els.pacingMax.value) || 20),
+      maxTras: Math.max(1, Math.min(50, Number(els.maxTras.value) || 20))
+    };
+  }
+
+  function updateReplyCounter() {
+    if (!els.replyCnt) return;
+    const n = els.defaultReply.value.length;
+    els.replyCnt.textContent = `${n} / 600`;
+    els.replyCnt.className = `cnt ${n > 600 ? 'err' : ''}`;
+  }
+
+  function mount(h = {}) {
+    handlers = h;
     if (host) return;
 
     host = document.createElement('div');
@@ -96,31 +203,93 @@
         </span>
       </div>
       <div id="body">
-        <div class="row"><span id="link" class="err">łącznik: sprawdzam</span><span>Alt+H</span></div>
-        <div class="row"><button type="button" id="btest" class="btn">Test selektorów</button></div>
+        <div class="row"><span id="link" class="err">łącznik: sprawdzam</span><span class="mono">Alt+H</span></div>
+        <div class="row"><button type="button" id="btest">Test selektorów</button></div>
+
+        <div class="sec">Wklejka i kolejka</div>
+        <textarea id="paste" placeholder="@@ etykieta&#10;FRACHT: ...&#10;ODPIS: ..."></textarea>
+        <div class="row">
+          <button type="button" id="badd">Dodaj do kolejki</button>
+          <span class="cnt" id="counts">OK 0 · BŁĄD 0 · CZEKA 0</span>
+        </div>
+        <ul class="warns" id="warns" hidden></ul>
+        <div class="q-empty" id="qempty">Kolejka pusta.</div>
+        <table id="qtable" hidden>
+          <thead><tr><th>#</th><th>TRASA</th><th>STATUS</th><th>UWAGI</th><th></th></tr></thead>
+          <tbody id="qbody"></tbody>
+        </table>
+        <div class="row">
+          <button type="button" id="bstart">Start</button>
+          <button type="button" id="bstop" disabled>Stop</button>
+          <button type="button" id="bclr">Usuń zakończone</button>
+        </div>
+
+        <div class="sec">Ustawienia</div>
+        <label class="row"><span>Tryb próbny (bez publikacji)</span><input type="checkbox" id="dryrun"></label>
+        <label class="row"><span>Szablon ODPIS (domyślny)</span><span class="cnt" id="replycnt">0 / 600</span></label>
+        <textarea id="replydef" placeholder="Użyty, gdy trasa nie ma własnego ODPIS. Placeholdery: {zaladunek} {rozladunek} {data} {etykieta}"></textarea>
+        <div class="row">
+          <span>Przerwa między frachtami (s)</span>
+          <span><input type="number" id="pmin" min="3" max="300"> – <input type="number" id="pmax" min="3" max="300"></span>
+        </div>
+        <div class="row">
+          <span>Limit tras na wklejkę</span>
+          <input type="number" id="maxtras" min="1" max="50">
+        </div>
+        <div class="row"><button type="button" id="bsave">Zapisz ustawienia</button></div>
+
+        <div class="sec">Log</div>
         <div id="log" role="log" aria-live="polite"></div>
       </div>`;
     root.appendChild(w);
 
+    const q = (id) => root.getElementById(id);
     els = {
       w,
-      hd: root.getElementById('hd'),
-      body: root.getElementById('body'),
-      min: root.getElementById('bmin'),
-      x: root.getElementById('bx'),
-      link: root.getElementById('link'),
-      test: root.getElementById('btest'),
-      log: root.getElementById('log')
+      hd: q('hd'),
+      min: q('bmin'),
+      x: q('bx'),
+      link: q('link'),
+      test: q('btest'),
+      paste: q('paste'),
+      addBtn: q('badd'),
+      counts: q('counts'),
+      warns: q('warns'),
+      qEmpty: q('qempty'),
+      qTable: q('qtable'),
+      qBody: q('qbody'),
+      start: q('bstart'),
+      stop: q('bstop'),
+      clr: q('bclr'),
+      dryRun: q('dryrun'),
+      defaultReply: q('replydef'),
+      replyCnt: q('replycnt'),
+      pacingMin: q('pmin'),
+      pacingMax: q('pmax'),
+      maxTras: q('maxtras'),
+      save: q('bsave'),
+      log: q('log')
     };
 
-    els.test.addEventListener('click', () => {
-      if (handlers.onTest) handlers.onTest();
-    });
+    els.test.addEventListener('click', () => handlers.onTest && handlers.onTest());
     els.min.addEventListener('click', () => {
       w.classList.toggle('min');
       els.min.textContent = w.classList.contains('min') ? '□' : '_';
     });
-    els.x.addEventListener('click', () => onClose());
+    els.x.addEventListener('click', () => handlers.onClose && handlers.onClose());
+    els.addBtn.addEventListener('click', () => {
+      const text = els.paste.value;
+      if (handlers.onQueueAdd) handlers.onQueueAdd(text);
+    });
+    els.start.addEventListener('click', () => handlers.onStart && handlers.onStart());
+    els.stop.addEventListener('click', () => handlers.onStop && handlers.onStop());
+    els.clr.addEventListener('click', () => handlers.onClearDone && handlers.onClearDone());
+    els.save.addEventListener('click', () => handlers.onSaveSettings && handlers.onSaveSettings(readSettings()));
+    els.defaultReply.addEventListener('input', updateReplyCounter);
+    els.qBody.addEventListener('click', (e) => {
+      const b = e.target.closest('button[data-action]');
+      if (b && handlers.onAction) handlers.onAction(b.dataset.action, b.dataset.id);
+    });
 
     els.hd.addEventListener('mousedown', onDragStart);
     document.addEventListener('mousemove', onDragMove);
@@ -130,7 +299,7 @@
     log('Widżet gotowy.');
   }
 
-  // Obsługa przeciągania i skrótu trzymana na poziomie modułu, żeby unmount mógł je zdjąć.
+  // Obsługa przeciągania i skrótu na poziomie modułu, żeby unmount mógł je zdjąć.
   function onDragStart(e) {
     if (e.target.closest('button')) return;
     dragging = true;
@@ -157,6 +326,10 @@
     }
   }
 
+  function clearPaste() {
+    if (els.paste) els.paste.value = '';
+  }
+
   function unmount() {
     document.removeEventListener('mousemove', onDragMove);
     document.removeEventListener('mouseup', onDragEnd);
@@ -165,6 +338,7 @@
     host = null;
     root = null;
     els = {};
+    handlers = {};
   }
 
   T.ui = Object.freeze({
@@ -172,7 +346,11 @@
     unmount,
     log,
     setLink,
-    get root() { return root; },
-    get els() { return els; }
+    renderQueue,
+    setRunning,
+    setWarnings,
+    setSettings,
+    clearPaste,
+    get root() { return root; }
   });
 })();

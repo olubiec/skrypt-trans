@@ -20,6 +20,7 @@
         "src/page/adapters/selectors.js",
         "src/page/adapters/modal.js",
         "src/page/modules/selftest.js",
+        "src/page/modules/add.js",
         "src/page/main.js"
       ],
       "run_at": "document_idle",
@@ -31,7 +32,12 @@
       ],
       "js": [
         "src/shared/proto.js",
+        "src/shared/text.js",
+        "src/shared/parser.js",
         "src/content/bus-client.js",
+        "src/content/state/store.js",
+        "src/content/queue/queue.js",
+        "src/content/queue/runner.js",
         "src/content/ui/widget.js",
         "src/content/index.js"
       ],
